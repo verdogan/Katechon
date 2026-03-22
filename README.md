@@ -294,7 +294,6 @@ python -m pytest
 ├── LICENSE
 ├── README.md
 ├── pyproject.toml
-├── .github/workflows/ci.yml
 ├── src/watchdog_research/
 │   ├── __init__.py
 │   ├── adversarial_planner.py # wraps MissionPlanner with adversarial injections
@@ -328,7 +327,6 @@ python -m pytest
 │   ├── test_planner.py
 │   ├── test_sensors_feedback.py
 │   └── test_state_and_verifier.py
-└── reports/                  # generated simulation output
 ```
 
 ---
