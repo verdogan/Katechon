@@ -1,0 +1,280 @@
+Metadata-Version: 2.4
+Name: active-defense-watchdog-research
+Version: 0.2.0
+Summary: Exploratory research prototype for proactive AI watchdog architectures: observe-orient-decide-act-verify simulation loops with quantitative evaluation.
+Author: Research Prototype Team
+License: MIT
+Project-URL: Repository, https://github.com/example/active-defense-watchdog-research
+Keywords: active-defense,ai-safety,agent-systems,threat-simulation,ooda-loop,research-prototype
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Security
+Classifier: Typing :: Typed
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: openclaw-sdk>=2.1
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"
+Dynamic: license-file
+
+# Active-Defense AI Watchdog — Research Prototype
+
+A simulation framework for studying **proactive AI defense systems** that observe multi-domain threat signals, generate intervention plans, execute under human-review gating, verify outcomes, and adapt, all within a reproducible, quantitatively evaluated OODA loop.
+
+This is an exploratory research prototype. Designed for technical discovery, stakeholder review, and grant conversations.
+
+---
+
+## Why This Exists
+
+Current threat-response systems are overwhelmingly **reactive**: they detect, alert, and escalate. For existential-scale threats such as AI misuse, pandemic-scale bio-risk, cyber-physical infrastructure collapse, coordinated disinformation, and climate-supply-chain cascades, **intervention, not just detection**, is required.
+
+This prototype addresses three structural gaps in existing approaches:
+
+1. **Reactive posture.** Detection-first architectures optimize for alerting, not acting. This system implements a closed observe → decide → act → verify loop.
+2. **Fragmentation.** Threat intelligence, planning, and execution typically live in silos. This architecture connects them through a unified mission cycle.
+3. **Non-reproducibility.** This framework produces comparable, reproducible metrics across experiments.
+
+---
+
+## Architecture: The OODA Mission Cycle
+
+```mermaid
+flowchart LR
+  O["Observe\nsensors.py"] --> R["Orient\nWorldState"]
+  R --> D["Decide\nplanner.py"]
+  D --> A["Act\neffectors.py"]
+  A --> V["Verify\nverifier.py"]
+  V -->|adapt risk| R
+```
+
+| Phase | Module | What Happens |
+|-------|--------|--------------|
+| **Observe** | `sensors.py` | Collect threat signals from pluggable providers (synthetic, escalating, correlated) |
+| **Orient** | `domain.py` | Ingest signals into `WorldState`; blend current signal risk with prior risk memory |
+| **Decide** | `planner.py` | Generate candidate plans, score counterfactually, select best intervention |
+| **Act** | `effectors.py` | Execute simulation (or block pending human review if above threshold) |
+| **Verify** | `verifier.py` | Score outcome; recommend adaptation (stabilize / refine / iterate / escalate) |
+
+The loop then applies verification-driven feedback to the risk index, creating a closed adaptive cycle.
+
+---
+
+## Key Capabilities
+
+**Six threat domains** — cyber, bio, infrastructure, information, finance, climate — each with domain-specific action templates.
+
+**Three signal provider types** — stationary-rate, escalating (severity ramps when unaddressed and can be dampened by intervention feedback), and correlated (multi-domain simultaneous events).
+
+**Candidate plan generation** — the planner generates multiple candidates per cycle, scores each with a counterfactual heuristic (expected risk reduction), and selects the highest-ranked.
+
+**Risk-memory dynamics** — `WorldState` blends current signal risk with prior risk state, enabling true long-horizon accumulation behavior in scenarios like `slow_burn`.
+
+**Human review gating** — plans above a configurable priority threshold require explicit approval before execution. The `approved_response` scenario measures the efficacy ceiling when gating is removed.
+
+**Quantitative evaluation framework** — every run produces metrics including autonomy ratio, stabilization rate, risk reduction, mean impact, and human gate utilization. Cross-scenario comparison tables enable systematic hypothesis testing.
+
+**Five predefined scenarios** for reproducible experiments:
+
+| Scenario | Tests | Steps |
+|----------|-------|-------|
+| `baseline` | Control condition; stationary multi-domain signals | 10 |
+| `cyber_escalation` | Adaptation to an accelerating single-domain threat | 15 |
+| `multi_domain_crisis` | Correlated cascade across cyber/infra/finance | 12 |
+| `slow_burn` | Long-horizon risk accumulation from weak persistent signals | 20 |
+| `approved_response` | Upper bound on efficacy with full autonomy | 10 |
+
+---
+
+## Quick Start
+
+### Install
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+### Run a simulation
+
+```bash
+watchdog-research run --steps 10 --seed 42 --output reports/demo.md
+```
+
+### Run a predefined scenario
+
+```bash
+watchdog-research scenario cyber_escalation --seed 42 --output reports/cyber.md
+```
+
+### Compare all scenarios
+
+```bash
+watchdog-research evaluate --seed 42
+```
+
+### OpenClaw + OpenRouter planner/effector (optional)
+
+Install and run OpenClaw locally, then create planner/effector agents configured
+with OpenRouter-backed models.
+
+```bash
+# LLM planner only (simulation effector remains active)
+watchdog-research scenario baseline --seed 42 --planner openclaw
+
+# LLM planner + real OpenClaw effector
+watchdog-research scenario baseline --seed 42 --planner openclaw --effector openclaw
+```
+
+If you keep your key in the project `env` file (`OPENROUTER_KEY=...`), you can
+register it for OpenClaw agents with:
+
+```powershell
+$line = Get-Content .\env | Where-Object { $_ -match '^OPENROUTER_KEY=' } | Select-Object -First 1
+$token = ($line -split '=', 2)[1].Trim()
+$token | openclaw models --agent watchdog-planner auth paste-token --provider openrouter
+$token | openclaw models --agent watchdog-executor auth paste-token --provider openrouter
+openclaw models --agent watchdog-planner set openrouter/openai/gpt-4.1-mini
+openclaw models --agent watchdog-executor set openrouter/openai/gpt-4.1-mini
+```
+
+For local testing without installing a Windows service, run the gateway in the
+foreground:
+
+```bash
+openclaw gateway run --allow-unconfigured --bind loopback --port 18789 --auth none
+```
+
+You can override defaults with:
+
+- `--openclaw-gateway-url`
+- `--planner-agent-id` / `--effector-agent-id` / `--sensor-agent-id`
+- `--planner-model` / `--effector-model` / `--sensor-model` (OpenRouter model hints)
+- `--sensor-mode` (`synthetic` or `openclaw`, for `run`)
+
+Default OpenRouter model hint: `openai/gpt-4.1-mini`.
+OpenClaw agent model IDs should use the provider-prefixed form such as
+`openrouter/openai/gpt-4.1-mini`.
+
+See `docs/openclaw_integration_plan.md` for the detailed rollout and safety checklist.
+
+Example output (illustrative; values vary by seed/config):
+
+```
+Metric                      baseline            cyber_escalation    multi_domain_crisis slow_burn           approved_response
+Steps                       10                  15                  12                  20                  10
+Signals/step                1.6                 1.1                 2.8                 1.4                 1.6
+Plans generated             9                   11                  12                  18                  9
+Executed                    4                   7                   4                   8                   9
+Blocked                     5                   4                   8                   10                  0
+Stabilized                  0                   1                   0                   0                   2
+Mean impact                 0.191               0.299               0.168               0.184               0.595
+Risk reduction              +0.075              -0.265              +0.024              +0.077              +0.075
+Autonomy ratio              44.44%              63.64%              33.33%              44.44%              100.00%
+Stabilization rate          0.00%               9.09%               0.00%               0.00%               22.22%
+```
+
+### Run tests
+
+```bash
+python -m pytest
+```
+
+42 tests covering loop mechanics, planner/effector/sensor integrations, evaluation metrics, and all scenario runs.
+
+---
+
+## Project Layout
+
+```
+.
+├── README.md
+├── pyproject.toml
+├── .github/workflows/ci.yml
+├── docs/
+│   ├── architecture.md
+│   ├── evaluation_framework.md
+│   ├── grant_demo_pack.md
+│   ├── openclaw_integration_plan.md
+│   └── grant_pitch_notes.md
+├── src/watchdog_research/
+│   ├── __init__.py
+│   ├── cli.py              # run, scenario, evaluate, list subcommands
+│   ├── config.py            # tunable parameters for experiments
+│   ├── domain.py            # core data model (signals, plans, outcomes, state)
+│   ├── effectors.py         # simulation-only execution engine
+│   ├── evaluation.py        # research metrics and cross-scenario comparison
+│   ├── loop.py              # OODA cycle orchestration
+│   ├── openclaw_effector.py # OpenClaw-backed real action execution
+│   ├── openclaw_planner.py  # OpenClaw-backed LLM planner
+│   ├── openclaw_sensors.py  # OpenClaw-backed signal providers
+│   ├── openclaw_utils.py    # Shared OpenClaw helpers and async wrappers
+│   ├── planner.py           # candidate generation, counterfactual scoring
+│   ├── reporting.py         # markdown and JSON export
+│   ├── scenarios.py         # predefined reproducible scenarios
+│   ├── sensors.py           # signal providers (synthetic, escalating, correlated)
+│   └── verifier.py          # outcome scoring and adaptation
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_evaluation.py
+│   ├── test_openclaw_effector.py
+│   ├── test_openclaw_planner.py
+│   ├── test_openclaw_sensors.py
+│   ├── test_loop.py
+│   ├── test_planner.py
+│   ├── test_sensors_feedback.py
+│   └── test_state_and_verifier.py
+└── reports/                 # generated simulation output
+```
+
+---
+
+## Backend
+
+- **Python 3.11+** with strict typing (`mypy --strict` clean)
+- **Ruff** lint clean (E, F, I, UP, B, SIM, RUF rules)
+- **pytest** with 42 tests across loop, planner, OpenClaw integrations, and evaluation
+- **CI** via GitHub Actions: lint, type check, and test on Python 3.11+
+
+---
+
+## Research Roadmap
+
+This prototype demonstrates feasibility and evaluation methodology. Funded work would address:
+
+1. **Real data connectors** — implement `SignalProvider` for SIEM feeds, threat intel APIs, infrastructure telemetry
+2. **LLM-powered planners/effectors** — OpenClaw + OpenRouter integration is implemented; next work focuses on model benchmarking, prompt calibration, and safety-constrained action policy design
+3. **Controlled pilot environments** — deploy with sandboxed effectors and institutional partners; measure real detect-to-first-action
+4. **Independent red-team evaluation** — adversarial scenarios (signal spoofing, escalation gaming, prompt misuse)
+5. **Policy/governance integration** — add policy engine (OPA) constraining plan selection based on governance rules
+
+See [docs/grant_pitch_notes.md](docs/grant_pitch_notes.md) for funding rationale, [docs/evaluation_framework.md](docs/evaluation_framework.md) for the full evaluation methodology, and [docs/grant_demo_pack.md](docs/grant_demo_pack.md) for a ready-to-run funder demo script.
+
+---
+
+## Safety and Responsible Use
+
+This repository includes:
+
+- Deterministic simulation as the default mode
+- Optional OpenClaw integrations for LLM planning and real-world action execution (explicitly opt-in)
+- No deployment scripts for offensive operations
+- Human review gates in planning and execution flow
+- Safety guidance for constrained tool use and approval workflows
+
+Transition beyond research simulation should include legal, ethical, and domain governance review.
+
+---
+
+## License
+
+MIT

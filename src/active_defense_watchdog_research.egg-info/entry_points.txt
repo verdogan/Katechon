@@ -1,0 +1,2 @@
+[console_scripts]
+watchdog-research = watchdog_research.cli:main

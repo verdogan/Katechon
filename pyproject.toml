@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "katechon"
+version = "0.3.0"
+description = "Active-defense AI watchdog research prototype: OODA loop simulation with pluggable control policies for proactive threat intervention and oversight benchmarking."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Verdogan" }
+]
+keywords = [
+  "active-defense",
+  "ai-safety",
+  "ai-control",
+  "agent-systems",
+  "threat-simulation",
+  "ooda-loop",
+  "control-policies",
+  "oversight",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Security",
+  "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+openclaw = [
+  "openclaw-sdk>=2.1",
+]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "mypy>=1.10",
+  "ruff>=0.5",
+]
+
+[project.scripts]
+watchdog-research = "watchdog_research.cli:main"
+
+[project.urls]
+Repository = "https://github.com/verdogan/Katechon"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
